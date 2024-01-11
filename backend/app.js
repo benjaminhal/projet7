@@ -2,8 +2,19 @@ const express = require('express');
 const bookRoutes = require('./routes/stuff');
 const userRoutes = require('./routes/users');
 const path = require('path');
+const mongoose = require('mongoose');
+const cors = require('cors')
 
 const app = express();
+
+app.use(cors());
+
+app.get('api/auth', function(req, res, next){
+  res.json({msg: 'This is CORS-enabled for all auth'});
+});
+
+
+
 
 app.use(express.json());
 
