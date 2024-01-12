@@ -9,7 +9,7 @@ module.exports = (req, res, next) => {
            userId: userId
        };
 	next();
-   } catch(error) {
+   } catch(error) { console.log(error);
        res.status(401).json({ error });
    }
 };

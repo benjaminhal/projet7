@@ -12,7 +12,8 @@ exports.signup = (req, res, next) => {
     if (!validateEmail(email)) {
         return res.status(400).json({ error: 'Format adresse mail invalide !' });
     }
-    if (req.body.password?.length < 12) {
+    if (req.body.password.length < 12) {
+        console.log("mdp");
         return res.status(400).json({ error: 'Le mot de passe doit faire au moins 12 caractères !' });
     }
 
@@ -24,9 +25,9 @@ exports.signup = (req, res, next) => {
         });
         user.save()
           .then(() => res.status(201).json({ error: 'Utilisateur créé !' }))
-          .catch(error => res.status(400).json({ error: 'Cet email est déjà utilisé !' }));
+          .catch(error =>{console.log(error); res.status(400).json({ error: 'Cet email est déjà utilisé !' })});
       })
-      .catch(error => res.status(500).json({ error: 'Erreur lors de la création de l\'utilisateur !' }));
+      .catch(error =>{console.log(error); res.status(500).json({ error: 'Erreur lors de la création de l\'utilisateur !' })});
 };
 
 exports.login = (req, res, next) => {
