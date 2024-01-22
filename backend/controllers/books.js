@@ -7,11 +7,11 @@ exports.createBook = (req, res, next) => { console.log("create book");
     const bookObject = JSON.parse(req.body.book);
     delete bookObject._id;
     delete bookObject.userId;
-  
     const book = new Book({
       ...bookObject,
-      imageUrl: `${req.protocol}://${req.get('host')}/${req.imagePath}`, 
+      imageUrl: `${req.protocol}://${req.get('host')}/images/resized_${req.file.filename}`, 
       userId: req.auth.userId,
+      averageRating: bookObject.ratings[0].grade
     });
   
     book.save()
@@ -55,7 +55,7 @@ exports.modifyBook = (req, res, next) => {
     if (req.file) {
         bookObject = {
             ...JSON.parse(req.body.book),
-            imageUrl: `${req.protocol}://${req.get('host')}/${req.imagePath}`, 
+            imageUrl: `${req.protocol}://${req.get('host')}/images/resized_${req.file.filename}`, 
         };
     } else {
         // Si aucune image n'est fournie, prenez directement les informations du corps de la requête.
@@ -113,3 +113,37 @@ exports.getAllStuff = (req, res, next) => {
   );
 };
 
+
+exports.rateBook = (req, res, next) => {
+    const userId = req.auth.userId;
+    const grade = req.body.rating;
+
+    if (!grade || grade < 0 || grade > 5) {
+        return res.status(400).json({ message: 'Note invalide !' });
+    }
+    Book.findOne({ _id: req.params.id })
+        .then(book => {
+            const userRating = book.ratings.find(rating => rating.userId === userId);
+            if (userRating) {
+                return res.status(400).json({ message: 'Vous avez déjà noté ce livre !' });
+            }
+            book.ratings.push({ userId, grade });
+            const averageRating = (book.ratings.reduce((acc, rating) => acc + rating.grade, 0) / book.ratings.length).toFixed(1);
+            book.averageRating = parseFloat(averageRating); 
+            return book.save();
+        })
+        .then(book => res.status(200).json(book))
+        .catch(error => res.status(500).json({ erreur: error })); 
+};
+
+exports.getBestRatedBooks = (req, res, next) => {
+    Book.find().sort({averageRating: -1}).limit(3)
+        .then((books) => {
+            res.status(200).json(books);
+        })
+        .catch((error) => {
+            res.status(400).json({
+                erreur: error
+            });
+        });
+}

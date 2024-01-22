@@ -14,8 +14,19 @@ const storage = multer.diskStorage({
     filename: (req, file, callback) => {
         const name = file.originalname.split(' ').join('_'); // Remplace les espaces dans le nom d'origine du fichier par des underscores
         const extension = MIME_TYPES[file.mimetype]; // Détermine l'extension du fichier à partir de son type MIME
-        callback(null, name); // Génère le nom du fichier
+        callback(null, name + Date.now() + '.' + extension); // Génère le nom du fichier
     }
 });
-// Exportation de la configuration de multer, qui ne capture que les téléchargements de fichiers image
-module.exports = multer({ storage: storage }).single('image');
+
+// ***Handle file uploads***
+module.exports = (req, res, next) => {
+  const upload = multer({ storage }).single('image');
+  upload(req, res, (error) => {
+    if (error) {
+      res.status(error.statusCode || 500).json({ error: error.message });
+    } else {
+      next();
+    }
+  });
+};
+
