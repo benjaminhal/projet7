@@ -1,6 +1,7 @@
 const auth = require('../middleware/auth');
 const Book = require('../models/thing');
 const jwt = require('jsonwebtoken');
+const average = require('../utils/average');
 const fs = require('fs');
 
 exports.createBook = (req, res, next) => { console.log("create book");
@@ -9,7 +10,7 @@ exports.createBook = (req, res, next) => { console.log("create book");
     delete bookObject.userId;
     const book = new Book({
       ...bookObject,
-      imageUrl: `${req.protocol}://${req.get('host')}/images/resized_${req.file.filename}`, 
+      imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`, 
       userId: req.auth.userId,
       averageRating: bookObject.ratings[0].grade
     });
@@ -55,7 +56,7 @@ exports.modifyBook = (req, res, next) => {
     if (req.file) {
         bookObject = {
             ...JSON.parse(req.body.book),
-            imageUrl: `${req.protocol}://${req.get('host')}/images/resized_${req.file.filename}`, 
+            imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`, 
         };
     } else {
         // Si aucune image n'est fournie, prenez directement les informations du corps de la requête.
@@ -115,25 +116,41 @@ exports.getAllStuff = (req, res, next) => {
 
 
 exports.rateBook = (req, res, next) => {
-    const userId = req.auth.userId;
-    const grade = req.body.rating;
-
-    if (!grade || grade < 0 || grade > 5) {
-        return res.status(400).json({ message: 'Note invalide !' });
+    // On vérifie que la note est comprise entre 0 et 5
+    if (0 <= req.body.rating <= 5) {
+        // Stockage de la requête dans une constante
+        const ratingObject = { ...req.body, grade: req.body.rating };
+        // Suppression du faux _id envoyé par le front
+        delete ratingObject._id;
+        // Récupération du livre auquel on veut ajouter une note
+        Book.findOne({_id: req.params.id})
+            .then(book => {
+                // Création d'un tableau regroupant toutes les userId des utilisateurs ayant déjà noté le livre en question
+                const newRatings = book.ratings;
+                const userIdArray = newRatings.map(rating => rating.userId);
+                // On vérifie que l'utilisateur authentifié n'a jamais donné de note au livre en question
+                if (userIdArray.includes(req.auth.userId)) {
+                    res.status(403).json({ message : 'Not authorized' });
+                } else {
+                    // Ajout de la note
+                    newRatings.push(ratingObject);
+                    // Création d'un tableau regroupant toutes les notes du livre, et calcul de la moyenne des notes
+                    const grades = newRatings.map(rating => rating.grade);
+                    const averageGrades = average.average(grades);
+                    book.averageRating = averageGrades;
+                    // Mise à jour du livre avec la nouvelle note ainsi que la nouvelle moyenne des notes
+                    Book.updateOne({ _id: req.params.id }, { ratings: newRatings, averageRating: averageGrades, _id: req.params.id })
+                        .then(() => { res.status(201).json()})
+                        .catch(error => { res.status(400).json( { error })});
+                    res.status(200).json(book);
+                }
+            })
+            .catch((error) => {
+                res.status(404).json({ error });
+            });
+    } else {
+        res.status(400).json({ message: 'La note doit être comprise entre 1 et 5' });
     }
-    Book.findOne({ _id: req.params.id })
-        .then(book => {
-            const userRating = book.ratings.find(rating => rating.userId === userId);
-            if (userRating) {
-                return res.status(400).json({ message: 'Vous avez déjà noté ce livre !' });
-            }
-            book.ratings.push({ userId, grade });
-            const averageRating = (book.ratings.reduce((acc, rating) => acc + rating.grade, 0) / book.ratings.length).toFixed(1);
-            book.averageRating = parseFloat(averageRating); 
-            return book.save();
-        })
-        .then(book => res.status(200).json(book))
-        .catch(error => res.status(500).json({ erreur: error })); 
 };
 
 exports.getBestRatedBooks = (req, res, next) => {
