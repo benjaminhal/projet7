@@ -3,7 +3,8 @@ const uniqueValidator = require('mongoose-unique-validator'); // package qui per
 
 const userSchema = mongoose.Schema({
     email: { type: String, required: true, unique: true }, // unique: true empêche plusieurs utilisateurs de s'inscrire avec la même adresse mail
-    password: { type: String, required: true }
+    password: { type: String, required: true },
+    
 });
 
 userSchema.plugin(uniqueValidator); // applique le validateur au schéma avant d'en faire un modèle

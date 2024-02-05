@@ -4,7 +4,7 @@ const userRoutes = require('./routes/users');
 const path = require('path');
 const mongoose = require('mongoose');
 const cors = require('cors')
-
+require('dotenv').config();
 const app = express();
 
 app.use(cors());
@@ -30,13 +30,15 @@ app.use('/api/auth', userRoutes);
 app.use('/images', express.static(path.join(__dirname, 'images')));
 
 
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI,
+  {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+  })
+  .then(() => console.log('Connected to MongoDB'))
+  .catch(() => console.log('Failed to connect to MongoDB'));
 
-mongoose.connect('mongodb+srv://benjamin:coco14@cluster0.ldazvia.mongodb.net/?retryWrites=true&w=majority',
-  { useNewUrlParser: true,
-    useUnifiedTopology: true })
-  .then(() => console.log('Connexion à MongoDB réussie !'))
-  .catch((error) => console.log('Connexion à MongoDB échouée !'+error));
-
-
+module.exports = app;
 
 module.exports = app;

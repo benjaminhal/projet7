@@ -4,7 +4,8 @@ const jwt = require('jsonwebtoken');
 const average = require('../utils/average');
 const fs = require('fs');
 
-exports.createBook = (req, res, next) => { console.log("create book");
+//créer un livre
+exports.createBook = (req, res, next) => {
     const bookObject = JSON.parse(req.body.book);
     delete bookObject._id;
     delete bookObject.userId;
@@ -20,7 +21,7 @@ exports.createBook = (req, res, next) => { console.log("create book");
       .catch(error =>{console.log(error); res.status(400).json({ erreur: error })});
   };
   
-
+//recuperer tout les livres
 exports.getBooks = (req, res, next) => {
     Book.find()
         .then((books) => {
@@ -33,6 +34,8 @@ exports.getBooks = (req, res, next) => {
         });
 };
 
+
+//recuperer un livre
 exports.getOneBook = (req, res, next) => {
     Book.findOne({
         _id: req.params.id
@@ -49,6 +52,7 @@ exports.getOneBook = (req, res, next) => {
     );
 };
 
+//modifier un livre
 exports.modifyBook = (req, res, next) => {
     let bookObject = {};
 
@@ -83,6 +87,7 @@ exports.modifyBook = (req, res, next) => {
         .catch(error => res.status(500).json({ erreur: error })); 
 };
 
+//supprimer un livre
     exports.deleteBook = (req, res, next) => {
         Book.findOne({_id: req.params.id})
             .then(book => {
@@ -114,7 +119,7 @@ exports.getAllStuff = (req, res, next) => {
   );
 };
 
-
+//definir une note
 exports.rateBook = (req, res, next) => {
     // On vérifie que la note est comprise entre 0 et 5
     if (0 <= req.body.rating <= 5) {
@@ -153,6 +158,7 @@ exports.rateBook = (req, res, next) => {
     }
 };
 
+//obtenir les livres les mieux notés
 exports.getBestRatedBooks = (req, res, next) => {
     Book.find().sort({averageRating: -1}).limit(3)
         .then((books) => {
